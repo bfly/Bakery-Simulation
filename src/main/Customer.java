@@ -30,16 +30,15 @@ public class Customer implements Runnable {
      * Run tasks for the customer
      */
     public void run() {
-        fillShoppingCart();
-        try { TimeUnit.SECONDS.sleep(shopTime); }
+        fillShoppingCart();      // customer fills his shopping cart with up to three loaves
+        try { TimeUnit.SECONDS.sleep(shopTime); }   // simulate shopping time
         catch (InterruptedException ignore) {}
-        float sales = getItemsValue();
-        bakery.addSales(sales);
-        try { TimeUnit.SECONDS.sleep(checkoutTime); }
+        //
+        bakery.addSales(getItemsValue());   // checkout with an available cashier
+        try { TimeUnit.SECONDS.sleep(checkoutTime); }   // simulate checkout time
         catch (InterruptedException ignore) {}
         System.out.printf("%s purchased $%5.2f, shoppingCart=%s\n",
-            this, sales, Arrays.toString(shoppingCart.toArray()));
-
+            this, getItemsValue(), Arrays.toString(shoppingCart.toArray()));
     }
 
     /**
@@ -58,8 +57,8 @@ public class Customer implements Runnable {
         if (shoppingCart.size() >= 3) {
             return false;
         }
-        bakery.takeBread(bread);
-        shoppingCart.add(bread);
+        bakery.takeBread(bread);        // take a loaf from available shelf
+        shoppingCart.add(bread);        // add the loaf to the shopping cart
         //System.out.printf("%s added a %s loaf to shopping cart\n", this, bread.toString());
 
         return true;

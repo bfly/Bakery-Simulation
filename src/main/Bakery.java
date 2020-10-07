@@ -13,23 +13,20 @@ public class Bakery implements Runnable {
     private final int[] loavesSold;
 
     // TODO
-    public Bakery() {
+    public Bakery() {   // setup
         System.out.println("Fly's Bakery is open.");
-        breadShelves = new Semaphore[BreadType.values().length];
-        cashiers = new Semaphore(4, true);
-        executor = Executors.newFixedThreadPool(ALLOWED_CUSTOMERS);
-        loavesSold = new int[BreadType.values().length];
+        breadShelves = new Semaphore[BreadType.values().length];    // bread shelf semaphores
+        cashiers = new Semaphore(4, true);              // cashier semaphores
+        executor = Executors.newFixedThreadPool(ALLOWED_CUSTOMERS); // thread pool size = occupancy limit
+        loavesSold = new int[BreadType.values().length];            // initialize bread sales by type
     }
 
     /**
      * Remove a loaf from the available breads and restock if necessary
      */
     public void takeBread(BreadType bread) {
-        try {
-            breadShelves[bread.ordinal()].acquire();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+        try { breadShelves[bread.ordinal()].acquire(); }  // Wait for the correct break rack
+        catch (InterruptedException ignore) {}
 //        System.out.println(bread + " loaf taken");
         int breadLeft = availableBread.get(bread);
         if (breadLeft > 0) {
@@ -37,11 +34,8 @@ public class Bakery implements Runnable {
         } else {
             System.out.println("No " + bread.toString() + " bread left! Restocking...");
             // restock by preventing access to the bread stand for some time
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException ie) {
-                ie.printStackTrace();
-            }
+            try { Thread.sleep(1000); }
+            catch (InterruptedException ie) { ie.printStackTrace(); }
             availableBread.put(bread, FULL_BREAD - 1);
         }
         loavesSold[bread.ordinal()]++;
@@ -49,37 +43,38 @@ public class Bakery implements Runnable {
     }
 
     /**
+     * Checkout using an available cashier
      * Add to the total sales
+     * After checkout, customer leaves bakery
      */
     public void addSales(float value) {
-        try {
-            cashiers.acquire();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+        try { cashiers.acquire(); }     // Wait for a cashier
+        catch (InterruptedException e) { e.printStackTrace(); }
         sales += value;
         cashiers.release();
     }
 
     /**
+     * Bakery Simulation
      * Run all customers in a fixed thread pool
      */
     public void run() {
-        availableBread = new ConcurrentHashMap<>();
+        availableBread = new ConcurrentHashMap<>();     // Stock bread shelves
         availableBread.put(BreadType.RYE, FULL_BREAD);
         availableBread.put(BreadType.SOURDOUGH, FULL_BREAD);
         availableBread.put(BreadType.WONDER, FULL_BREAD);
 
-        // TODO
+        // Setup a semaphore for each break shelf
         breadShelves[BreadType.RYE.ordinal()] = new Semaphore(1, true);
         breadShelves[BreadType.SOURDOUGH.ordinal()] = new Semaphore(1, true);
         breadShelves[BreadType.WONDER.ordinal()] = new Semaphore(1, true);
 
-        for ( int i = 0; i < TOTAL_CUSTOMERS; i++ ) {
+        for ( int i = 0; i < TOTAL_CUSTOMERS; i++ ) {   // Submit all customers
             Customer c = new Customer(this);
             executor.submit(c);
         }
 
+        // Shutdown bakery after all customers have checked out
         executor.shutdown();
         try { executor.awaitTermination(5, TimeUnit.MINUTES); }
         catch (InterruptedException ignore) {}
